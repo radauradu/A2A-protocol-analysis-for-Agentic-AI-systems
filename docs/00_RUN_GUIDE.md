@@ -35,10 +35,10 @@ Complete instructions to clone, build, run all experiment scenarios, and generat
 ## 2. Clone and Setup
 
 ```bash
-git clone --branch main --single-branch \
-  https://github.com/radauradu/Cross-Framework-AI-Agent-Orchestration-System.git
+git clone https://github.com/radauradu/A2A-protocol-analysis-for-Agentic-AI-systems.git
 
-cd Cross-Framework-AI-Agent-Orchestration-System
+
+cd A2A-protocol-analysis-for-Agentic-AI-systems
 ```
 
 The next commands assume you are in the repository root.
@@ -91,6 +91,7 @@ sudo docker compose --profile two-env build env1 env2
 ```bash
 sudo docker compose --profile env3-only build env3
 sudo docker compose --profile env3-only up -d
+sudo docker compose --profile env3-only exec ollama ollama pull llama3.2:3b 
 ```
 
 ### 5.2 SSH monitoring parameters
@@ -179,6 +180,7 @@ sudo docker compose --profile env3-only run --rm \
 ```bash
 sudo docker compose --profile two-env build env1 env2
 sudo docker compose --profile two-env up -d
+sudo docker compose --profile two-env exec ollama ollama pull llama3.2:3b 
 ```
 
 ### 6.2 Scenario 1_1 — 1 user, 1 node

@@ -126,7 +126,7 @@ services:
       - A2A_BASE_URL=http://env1:8000
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-   deploy:
+    deploy:
        resources:
         reservations:
           devices:

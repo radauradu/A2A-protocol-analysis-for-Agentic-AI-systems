@@ -3,7 +3,7 @@
 ## Directory Tree
 
 ```
-Cross-Framework-AI-Agent-Orchestration-System/
+A2A-protocol-analysis-for-Agentic-AI-systems/
 ├── a2a/                          # A2A protocol layer
 │   ├── __init__.py
 │   ├── agent_cards.py            # AgentCard definitions + in-memory registry
