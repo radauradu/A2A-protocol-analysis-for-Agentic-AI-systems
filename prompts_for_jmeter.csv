@@ -1,0 +1,13 @@
+prompt
+Show me all the sales registered from October 2021 to January 2022 grouped by month. Then show me some insights about the sales and plot the data in the chart of your choice.
+Analyze SKU-level sales in January 2022 only. Identify which products dominated that month.
+Compare sales per store during November 2021.
+Show store performance for Q1 2022 (January to March) ordered by total revenue.
+Identify trends in daily sales from November 15 to December 15 2021.
+List top 10 stores by average transaction value during December 2021.
+Find product categories that increased sales during the 2021 holiday season (November to December).
+Analyze week-over-week sales changes from October 1 to November 15 2021.
+Which stores sold more than 1000 items in December 2021? Show total and promo sales then plot them with a visualization.
+Highlight any SKU that had spikes in sales during the first 10 days of January 2022.
+Summarize sales trends across weekends only from November 2021.
+Identify stores where over 50 percent of all their December sales were close to Christmas (December 24 or December 25).

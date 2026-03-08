@@ -1,0 +1,165 @@
+version: "3.8"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Core observability and LLM backend (shared across profiles)
+  # ---------------------------------------------------------------------------
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    ports:
+      - "6006:6006"
+    volumes:
+      - phoenix_data:/phoenix/data
+    profiles: ["default", "env3-only", "two-env", "jmeter"]
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # GPU request; requires NVIDIA runtime + supported host
+    deploy:
+     resources:
+       reservations:
+         devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    #environment:
+      # Pin to a single GPU (index 0). Change to another index if needed.
+    #  - NVIDIA_VISIBLE_DEVICES=0
+    #  - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    profiles: ["default", "env3-only", "two-env", "jmeter"]
+
+  # ---------------------------------------------------------------------------
+  # Mode 1: Env3 only (OpenAI Agents SDK, single service, no A2A)
+  # ---------------------------------------------------------------------------
+  env3:
+    build: .
+    command: uvicorn endpoint:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+    - OTEL_SERVICE_NAME=torrado_env3_openai_agents
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix:6006/v1/traces
+    - PHOENIX_ENABLED=false
+    - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006
+    - PX_DISABLED=true
+    - OLLAMA_BASE_URL=http://ollama:11434
+    - OLLAMA_API_BASE=http://ollama:11434
+    - OLLAMA_HOST=http://ollama:11434
+    - OLLAMA_MODEL=llama3.2:3b
+    - PX_HOST=http://phoenix:6006
+    - PHOENIX_HOST=http://phoenix:6006
+    - NVIDIA_VISIBLE_DEVICES=0
+    - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+       reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./3Hour_Radu_nonA2A:/app/3Hour_Radu_nonA2A
+      - ./emissions:/app/emissions
+      - ./runs:/app/runs
+      - ./data:/app/data
+    depends_on:
+      - phoenix
+      - ollama
+    profiles: ["env3-only"]
+
+  # ---------------------------------------------------------------------------
+  # Mode 2: Two environments (A2A: Env1 orchestrator + Env2 PlotAgent)
+  # ---------------------------------------------------------------------------
+  env1:
+    build: .
+    command: uvicorn endpoint:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - OTEL_SERVICE_NAME=torrado_env1_orchestrator
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix:6006/v1/traces
+      - PHOENIX_ENABLED=true
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_API_BASE=http://ollama:11434
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2:3b
+      - PLOT_SERVICE_URL=http://env2:8001
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+       reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./3Hour_Radu:/app/3Hour_Radu
+      - ./emissions:/app/emissions
+      - ./runs:/app/runs
+      - ./data:/app/data
+    depends_on:
+      - phoenix
+      - ollama
+    profiles: ["two-env"]
+
+  env2:
+    build: .
+    command: uvicorn env2_openai_service:app --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
+    environment:
+      - OTEL_SERVICE_NAME=torrado_env2_plotagent
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix:6006/v1/traces
+      - PHOENIX_ENABLED=true
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_API_BASE=http://ollama:11434
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2:3b
+      - PLOT_SERVICE_URL=http://env2:8001
+      - A2A_BASE_URL=http://env1:8000
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+   deploy:
+       resources:
+        reservations:
+          devices:
+           - driver: nvidia
+             count: 1
+             capabilities: [gpu]
+    volumes:
+      - ./runs:/app/runs
+      - ./data:/app/data
+    depends_on:
+      - phoenix
+      - ollama
+    profiles: ["two-env"]
+
+  # ---------------------------------------------------------------------------
+  # JMeter test runner (kept idle; exec into container to run JMX tests)
+  # ---------------------------------------------------------------------------
+  jmeter:
+    image: justb4/jmeter:latest
+    platform: linux/amd64
+    volumes:
+      - ./tests/jmeter_test:/tests
+      - ./3Hour_Radu:/results_a2a
+      - ./3Hour_Radu_nonA2A:/results_non_a2a
+      - ./prompts_for_jmeter.csv:/tests/prompts_for_jmeter.csv
+      - ./jmeter-plugins:/plugins
+    entrypoint: >
+      sh -c "
+      cp /plugins/*.jar /opt/apache-jmeter-5.5/lib/ext/ 2>/dev/null || true &&
+      tail -f /dev/null"
+    profiles: ["env3-only", "two-env"]
+
+volumes:
+  phoenix_data:
+  ollama_data:
+
